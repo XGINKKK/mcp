@@ -1,0 +1,148 @@
+{
+    "name": "Outlet CRM - MCP Tools Test",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "start",
+            "name": "When clicking 'Test workflow'",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3001/mcp",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"tool\": \"get_pipeline_stats\",\n  \"arguments\": {}\n}",
+                "options": {}
+            },
+            "id": "get_stats",
+            "name": "Get Pipeline Stats",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                480,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3001/mcp",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"tool\": \"get_leads\",\n  \"arguments\": {\n    \"stage_slug\": \"lead\",\n    \"limit\": 5\n  }\n}",
+                "options": {}
+            },
+            "id": "get_leads",
+            "name": "Get Leads (Lead Stage)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                480,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3001/mcp",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"tool\": \"search_price_catalog\",\n  \"arguments\": {\n    \"query\": \"acrílica\"\n  }\n}",
+                "options": {}
+            },
+            "id": "search_catalog",
+            "name": "Search Price Catalog",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                480,
+                420
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combinationMode": "mergeByPosition",
+                "options": {}
+            },
+            "id": "merge",
+            "name": "Merge Results",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 3,
+            "position": [
+                720,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "When clicking 'Test workflow'": {
+            "main": [
+                [
+                    {
+                        "node": "Get Pipeline Stats",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Get Leads (Lead Stage)",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Search Price Catalog",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Pipeline Stats": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Leads (Lead Stage)": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Results",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Search Price Catalog": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Results",
+                        "type": "main",
+                        "index": 2
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "pinData": {}
+}

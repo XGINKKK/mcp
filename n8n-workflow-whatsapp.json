@@ -1,0 +1,109 @@
+{
+    "name": "WhatsApp Lead Creator (Outlet CRM)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "whatsapp-lead",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "WhatsApp Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "outlet-whatsapp"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse WhatsApp message from UAZAPI\nconst body = $input.first().json.body || $input.first().json;\n\n// Extract data from message\nconst phone = body.from || body.phone || '';\nconst name = body.pushName || body.sender_name || 'Lead WhatsApp';\nconst message = body.body || body.text || body.message || '';\n\n// Parse message for lead info (basic example)\nlet tipoTinta = 'Outro';\nlet quantidade = 0;\n\nif (message.toLowerCase().includes('acrílica')) tipoTinta = 'Acrílica';\nif (message.toLowerCase().includes('esmalte')) tipoTinta = 'Esmalte';\nif (message.toLowerCase().includes('látex')) tipoTinta = 'Látex';\n\nconst qtdMatch = message.match(/(\\d+)\\s*(litros?|l)/i);\nif (qtdMatch) quantidade = parseInt(qtdMatch[1]);\n\nreturn {\n  name: name,\n  phone: phone,\n  message: message,\n  custom_fields: {\n    tipo_tinta: tipoTinta,\n    quantidade_litros: quantidade,\n    origem: 'WhatsApp'\n  }\n};"
+            },
+            "id": "parse_message",
+            "name": "Parse WhatsApp Message",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3001/mcp",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"tool\": \"create_lead\",\n  \"arguments\": {\n    \"name\": \"{{ $json.name }}\",\n    \"phone\": \"{{ $json.phone }}\",\n    \"vendedor_id\": \"bf97af4c-e549-46f7-b725-0194f0bca21f\",\n    \"stage_slug\": \"lead\",\n    \"custom_fields\": {{ JSON.stringify($json.custom_fields) }},\n    \"notes\": \"Origem: WhatsApp\\nMensagem: {{ $json.message }}\"\n  }\n}",
+                "options": {}
+            },
+            "id": "create_lead",
+            "name": "Create Lead in CRM",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, lead_id: $json.result?.lead?.id } }}"
+            },
+            "id": "respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "WhatsApp Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Parse WhatsApp Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse WhatsApp Message": {
+            "main": [
+                [
+                    {
+                        "node": "Create Lead in CRM",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Lead in CRM": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "pinData": {}
+}

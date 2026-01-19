@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  outlet-mcp:
+    image: ghcr.io/xginkkk/mcp:latest
+    # Para build local: docker build -t outlet-mcp-server:latest .
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - SUPABASE_URL=https://nfbbrgtvkvipdkvqlyrz.supabase.co
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    networks:
+      - EduNet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.outlet-mcp.rule=Host(`mcp.eduardoia.com.br`)"
+      - "traefik.http.routers.outlet-mcp.entrypoints=websecure"
+      - "traefik.http.routers.outlet-mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.outlet-mcp.loadbalancer.server.port=3001"
+
+networks:
+  EduNet:
+    external: true
