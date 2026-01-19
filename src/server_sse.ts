@@ -274,31 +274,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const APP_SECRET = process.env.MCP_API_KEY || "outlet-mcp-secret-key-123";
+// let transport: SSEServerTransport;
 
-// Auth Middleware
-const authMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Unauthorized: Missing or invalid Bearer token" });
-    }
-    const token = authHeader.split(" ")[1];
-    if (token !== APP_SECRET) {
-        return res.status(403).json({ error: "Forbidden: Invalid API Key" });
-    }
-    next();
-};
-
-let transport: SSEServerTransport;
-
-// 1. SSE Transport (For n8n Native MCP Tool) - Protected
-app.get("/sse", authMiddleware, async (req, res) => {
-    console.log("New SSE connection established (Authenticated)");
+// 1. SSE Transport (For n8n Native MCP Tool) - Unauthenticated
+app.get("/sse", async (req, res) => {
+    console.log("New SSE connection established");
     transport = new SSEServerTransport("/messages", res);
     await server.connect(transport);
 });
 
-app.post("/messages", authMiddleware, async (req, res) => {
+app.post("/messages", async (req, res) => {
     if (transport) {
         await transport.handlePostMessage(req, res);
     } else {
