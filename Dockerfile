@@ -32,4 +32,4 @@ EXPOSE 3001
 ENV PORT=3001
 
 # Start server
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server_sse.js"]

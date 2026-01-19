@@ -6,9 +6,9 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "start": "node dist/index.js",
-        "dev": "tsx src/index.ts",
-        "serve": "tsx src/server.ts"
+        "start": "node dist/server_sse.js",
+        "dev": "tsx src/server_sse.ts",
+        "serve": "tsx src/server_sse.ts"
     },
     "keywords": [
         "mcp",
