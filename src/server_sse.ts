@@ -298,7 +298,6 @@ app.post("/mcp", async (req, res) => {
 
         // Handle tool listing
         if (method === "tools/list") {
-            const result = await server.listTools(); // This doesn't work directly on server instance easily without client, so we reuse schema handlers
             return res.json({
                 jsonrpc: "2.0",
                 result: {
