@@ -274,7 +274,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// let transport: SSEServerTransport;
+let transport: SSEServerTransport;
 
 // 1. SSE Transport (For n8n Native MCP Tool) - Unauthenticated
 app.get("/sse", async (req, res) => {
