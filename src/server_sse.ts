@@ -268,14 +268,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 });
 
-// ================== EXPRESS SERVER WITH SSE ==================
+// ================== EXPRESS SERVER WITH DUAL TRANSPORT ==================
 
 const app = express();
 app.use(cors());
+app.use(express.json()); // Essential for POST /mcp
 
 let transport: SSEServerTransport;
 
+// 1. SSE Transport (For n8n Native MCP Tool)
 app.get("/sse", async (req, res) => {
+    console.log("New SSE connection established");
     transport = new SSEServerTransport("/messages", res);
     await server.connect(transport);
 });
@@ -288,13 +291,65 @@ app.post("/messages", async (req, res) => {
     }
 });
 
+// 2. HTTP Stateless Transport (For n8n HTTP Request Node)
+app.post("/mcp", async (req, res) => {
+    try {
+        const { method, params } = req.body;
+
+        // Handle tool listing
+        if (method === "tools/list") {
+            const result = await server.listTools(); // This doesn't work directly on server instance easily without client, so we reuse schema handlers
+            return res.json({
+                jsonrpc: "2.0",
+                result: {
+                    tools: [
+                        { name: "get_leads", description: "Get leads filterable by stage and vendedor" },
+                        { name: "update_lead_stage", description: "Move lead to stage" },
+                        { name: "update_lead_custom_fields", description: "Update custom fields" },
+                        { name: "create_lead", description: "Create new lead" },
+                        { name: "search_price_catalog", description: "Search prices" },
+                        { name: "get_lead_history", description: "Get history" },
+                        { name: "get_pipeline_stats", description: "Get stats" }
+                    ]
+                }
+            });
+        }
+
+        // Handle Direct Tool Calls
+        const toolName = req.body.tool || (params && params.name);
+        const toolArgs = req.body.arguments || (params && params.arguments);
+
+        if (toolName) {
+            let result;
+            switch (toolName) {
+                case "get_leads": result = await getLeads(GetLeadsSchema.parse(toolArgs)); break;
+                case "update_lead_stage": result = await updateLeadStage(UpdateLeadStageSchema.parse(toolArgs)); break;
+                case "update_lead_custom_fields": result = await updateLeadCustomFields(UpdateLeadCustomFieldsSchema.parse(toolArgs)); break;
+                case "create_lead": result = await createLead(CreateLeadSchema.parse(toolArgs)); break;
+                case "search_price_catalog": result = await searchPriceCatalog(SearchPriceCatalogSchema.parse(toolArgs)); break;
+                case "get_lead_history": result = await getLeadHistory(GetLeadHistorySchema.parse(toolArgs)); break;
+                case "get_pipeline_stats": result = await getPipelineStats(); break;
+                default: throw new Error(`Unknown tool: ${toolName}`);
+            }
+            return res.json({ success: true, result });
+        }
+
+        res.status(400).json({ error: "Invalid request format. Use 'tool' and 'arguments' properties." });
+
+    } catch (error) {
+        console.error("HTTP MCP Error:", error);
+        const message = error instanceof Error ? error.message : String(error);
+        res.status(500).json({ error: message });
+    }
+});
+
 app.get("/health", (req, res) => {
-    res.json({ status: "ok", mode: "sse" });
+    res.json({ status: "ok", mode: "dual (sse + http)", endpoints: ["/sse", "/mcp"] });
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(Number(PORT), "0.0.0.0", () => {
-    console.log(`🎨 Outlet MCP Server (SSE) running on port ${PORT}`);
-    console.log(`   SSE Endpoint: http://localhost:${PORT}/sse`);
-    console.log(`   Messages:     http://localhost:${PORT}/messages`);
+    console.log(`🎨 Outlet MCP Server (Dual) running on port ${PORT}`);
+    console.log(`   SSE Endpoint:  http://0.0.0.0:${PORT}/sse`);
+    console.log(`   HTTP Endpoint: http://0.0.0.0:${PORT}/mcp`);
 });
