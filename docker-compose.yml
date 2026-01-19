@@ -10,6 +10,7 @@ services:
       - PORT=3001
       - SUPABASE_URL=https://nfbbrgtvkvipdkvqlyrz.supabase.co
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - MCP_API_KEY=outlet-mcp-secret-key-123
     networks:
       - EduNet
     labels:
